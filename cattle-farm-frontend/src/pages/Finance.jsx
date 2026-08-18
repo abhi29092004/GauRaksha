@@ -81,13 +81,13 @@ export default function Finance() {
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
           padding: '5px 16px', borderRadius: 24,
-          background: 'rgba(240,160,48,0.10)',
-          border: '1px solid rgba(240,160,48,0.26)',
+          background: 'rgba(193,117,46,0.10)',
+          border: '1px solid rgba(193,117,46,0.26)',
           fontFamily: 'JetBrains Mono, monospace',
           fontSize: 10.5, letterSpacing: '0.13em', color: 'var(--amber)',
           textTransform: 'uppercase', marginBottom: '1rem',
         }}>
-          Module 04
+          
         </div>
         <h1 className="font-display" style={{
           fontSize: 'clamp(26px,4.5vw,36px)',
@@ -281,7 +281,7 @@ export default function Finance() {
                     fontWeight:800, fontSize:14, flexShrink:0, fontFamily:'Syne,sans-serif',
                     background: a.rank===1 ? 'var(--amber-dim)' : 'var(--bg2)',
                     color: a.rank===1 ? 'var(--amber)' : 'var(--text3)',
-                    border: `1px solid ${a.rank===1 ? 'rgba(240,160,48,0.3)' : 'var(--border)'}`,
+                    border: `1px solid ${a.rank===1 ? 'rgba(193,117,46,0.3)' : 'var(--border)'}`,
                   }}>
                     #{a.rank}
                   </div>
@@ -325,7 +325,7 @@ export default function Finance() {
                   tick={{ fill:'var(--text3)', fontSize:11 }}
                   axisLine={false} tickLine={false} domain={['auto','auto']} />
                 <Tooltip
-                  contentStyle={{ background:'rgba(15,26,18,0.96)', border:'1px solid rgba(34,201,122,0.2)', borderRadius:10, fontSize:12 }}
+                  contentStyle={{ background:'rgba(15,26,18,0.96)', border:'1px solid rgba(47,143,124,0.2)', borderRadius:10, fontSize:12 }}
                   labelStyle={{ color:'var(--text3)', fontFamily:'JetBrains Mono,monospace' }}
                   itemStyle={{ color:'var(--green)' }}
                 />

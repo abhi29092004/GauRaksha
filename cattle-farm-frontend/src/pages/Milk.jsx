@@ -57,8 +57,8 @@ export default function Milk() {
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
           padding: '5px 16px', borderRadius: 24,
-          background: 'rgba(160,112,240,0.10)',
-          border: '1px solid rgba(160,112,240,0.26)',
+          background: 'rgba(139,90,140,0.10)',
+          border: '1px solid rgba(139,90,140,0.26)',
           fontFamily: 'JetBrains Mono, monospace',
           fontSize: 10.5, letterSpacing: '0.13em', color: 'var(--purple)',
           textTransform: 'uppercase', marginBottom: '1rem',
@@ -159,7 +159,7 @@ export default function Milk() {
                   display:'flex', alignItems:'center', gap:16, marginBottom:20,
                   padding:'16px 18px', borderRadius:12,
                   background: isPass ? 'var(--green-dim)' : 'var(--red-dim)',
-                  border: `1px solid ${isPass ? 'rgba(34,201,122,0.22)' : 'rgba(240,96,96,0.22)'}`,
+                  border: `1px solid ${isPass ? 'rgba(47,143,124,0.22)' : 'rgba(193,68,58,0.22)'}`,
                 }}>
                   <div style={{ fontSize:42 }}>{isPass ? '✅' : '❌'}</div>
                   <div>
@@ -194,7 +194,7 @@ export default function Milk() {
                     {result.issues.map((issue, i) => (
                       <div key={i} style={{
                         padding:'9px 13px', borderRadius:9,
-                        background:'var(--amber-dim)', border:'1px solid rgba(240,160,48,0.2)', marginBottom:6,
+                        background:'var(--amber-dim)', border:'1px solid rgba(193,117,46,0.2)', marginBottom:6,
                       }}>
                         <p style={{ fontSize:12.5, color:'var(--amber)' }}>⚠ {issue}</p>
                       </div>
@@ -218,7 +218,7 @@ export default function Milk() {
               <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:340 }}>
                 <div style={{
                   width:80, height:80, borderRadius:'50%',
-                  background:'var(--purple-dim)', border:'1px solid rgba(160,112,240,0.22)',
+                  background:'var(--purple-dim)', border:'1px solid rgba(139,90,140,0.22)',
                   display:'flex', alignItems:'center', justifyContent:'center',
                   fontSize:38, marginBottom:18,
                 }}>🥛</div>
@@ -256,7 +256,7 @@ export default function Milk() {
                   <div style={{
                     width:44, height:44, borderRadius:10, flexShrink:0,
                     background: pass ? 'var(--green-dim)' : 'var(--red-dim)',
-                    border: `1px solid ${pass ? 'rgba(34,201,122,0.2)' : 'rgba(240,96,96,0.2)'}`,
+                    border: `1px solid ${pass ? 'rgba(47,143,124,0.2)' : 'rgba(193,68,58,0.2)'}`,
                     display:'flex', alignItems:'center', justifyContent:'center', fontSize:20,
                   }}>
                     {pass ? '✅' : '❌'}

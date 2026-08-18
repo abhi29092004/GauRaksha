@@ -1,57 +1,44 @@
-import { useState, useEffect, useRef } from 'react'
-import { vetAPI, BASE_URL } from '../services/api'
-import { io } from 'socket.io-client'
+import { useState, useEffect } from 'react'
+import { vetAPI } from '../services/api'
 
 const LEVEL_CARDS = [
-  { id:'ai',    emoji:'🤖', tag:'Level 01', label:'AI First Aid',    desc:'Instant advice from Gemma AI',    color:'var(--green)' },
-  { id:'map',   emoji:'📍', tag:'Level 02', label:'Find a Vet',      desc:'Nearby vets on map',              color:'var(--blue)'  },
-  { id:'video', emoji:'📹', tag:'Level 03', label:'Live Consult',    desc:'Chat & video with a vet',         color:'var(--amber)' },
+  { id:'ai',  emoji:'🤖', tag:'Level 01', label:'AI First Aid',   desc:'Instant advice from Gemma AI', color:'var(--green)' },
+  { id:'map', emoji:'📍', tag:'Level 02', label:'Vet Locations',  desc:'Real nearby clinics on the map', color:'var(--blue)' },
 ]
 
-const STATUS = {
-  idle:       { color:'var(--text3)', bg:'var(--bg2)',      border:'var(--border)',                      label:'Not connected' },
-  connecting: { color:'var(--amber)', bg:'var(--amber-dim)', border:'rgba(240,160,48,0.2)',              label:'Connecting…'  },
-  connected:  { color:'var(--green)', bg:'var(--green-dim)', border:'rgba(34,201,122,0.2)',              label:'Connected'    },
-  error:      { color:'var(--red)',   bg:'var(--red-dim)',   border:'rgba(240,96,96,0.2)',               label:'Failed'       },
-}
+// Farm reference location — used to center the map and the search radius.
+const FARM_LAT = 12.3
+const FARM_LNG = 76.6
+const MAP_EMBED_SRC = `https://www.google.com/maps?q=veterinary+clinic&ll=${FARM_LAT},${FARM_LNG}&z=12&output=embed`
+const MAP_LINK       = `https://www.google.com/maps/search/veterinary+clinic/@${FARM_LAT},${FARM_LNG},12z`
+
+// Cleans a phone string into something safe for a tel: link
+const telHref = (phone) => `tel:${String(phone).replace(/[^\d+]/g, '')}`
 
 export default function Vet() {
-  const [tab, setTab]           = useState('ai')
-  const [form, setForm]         = useState({ farmer_name:'', symptoms:'' })
-  const [result, setResult]     = useState(null)
-  const [loading, setLoading]   = useState(false)
-  const [vets, setVets]         = useState([])
-  const [messages, setMessages] = useState([])
-  const [msgInput, setMsgInput] = useState('')
-  const [socketStatus, setSocketStatus] = useState('idle')
-  const [room]    = useState('consult-' + Date.now())
-  const socketRef = useRef(null)
-  const chatRef   = useRef(null)
+  const [tab, setTab]         = useState('ai')
+  const [form, setForm]       = useState({ farmer_name:'', symptoms:'' })
+  const [result, setResult]   = useState(null)
+  const [loading, setLoading] = useState(false)
 
+  const [vets, setVets]               = useState([])
+  const [vetsLoading, setVetsLoading] = useState(true)
+
+  // Load nearby vet doctors once on mount so a "call now" number is always ready,
+  // no matter which tab the farmer is on.
   useEffect(() => {
-    socketRef.current = io(BASE_URL, {
-      transports: ['polling','websocket'], autoConnect: false,
-      reconnection: true, reconnectionAttempts: 5, path: '/socket.io',
-    })
-    socketRef.current.on('connect',       () => { setSocketStatus('connected'); socketRef.current.emit('join_room', { room }); addMsg('System', 'Connected to chat room', true) })
-    socketRef.current.on('disconnect',    () => { setSocketStatus('idle'); addMsg('System', 'Disconnected', true) })
-    socketRef.current.on('connect_error', err => { setSocketStatus('error'); addMsg('System', 'Connection failed: ' + err.message, true) })
-    socketRef.current.on('system_message', msg => addMsg('System', msg.text, true))
-    socketRef.current.on('chat_message',   msg => setMessages(prev => [...prev, msg]))
-    return () => socketRef.current?.disconnect()
-  }, [room])
+    (async () => {
+      try {
+        const r = await vetAPI.getNearbyVets(FARM_LAT, FARM_LNG)
+        setVets(r.data?.vets || [])
+      } catch (e) {
+        setVets([])
+      }
+      setVetsLoading(false)
+    })()
+  }, [])
 
-  useEffect(() => { if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight }, [messages])
-
-  const addMsg = (sender, text, system=false) =>
-    setMessages(prev => [...prev, { sender, text, system, ts: new Date().toLocaleTimeString() }])
-
-  const joinChat = () => { if (socketStatus === 'connected') return; setSocketStatus('connecting'); socketRef.current.connect() }
-  const sendMsg  = () => {
-    if (!msgInput.trim() || socketStatus !== 'connected') return
-    socketRef.current.emit('chat_message', { room, sender: form.farmer_name || 'Farmer', text: msgInput, timestamp: new Date().toLocaleTimeString() })
-    setMsgInput('')
-  }
+  const nearestVet = vets[0]
 
   const getAI = async () => {
     if (!form.symptoms.trim()) return alert('Describe symptoms first')
@@ -63,26 +50,16 @@ export default function Vet() {
     setLoading(false)
   }
 
-  const loadVets = async () => {
-    setTab('map')
-    try { const r = await vetAPI.getNearbyVets(12.3, 76.6); setVets(r.data.vets || []) }
-    catch { setVets([]) }
-  }
-
-  const openVideo = () => window.open(`https://meet.jit.si/cattle-farm-${room}`, '_blank')
-
-  const ss = STATUS[socketStatus]
-
   return (
     <div style={{ padding: 'clamp(1rem,3vw,2rem)', maxWidth: 1160, margin: '0 auto' }}>
 
       {/* ── Page Header ── */}
-      <div style={{ marginBottom: '2rem' }} className="animate-fade-up">
+      <div style={{ marginBottom: '1.25rem' }} className="animate-fade-up">
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
           padding: '5px 16px', borderRadius: 24,
-          background: 'rgba(96,168,240,0.10)',
-          border: '1px solid rgba(96,168,240,0.26)',
+          background: 'rgba(90,111,165,0.10)',
+          border: '1px solid rgba(90,111,165,0.26)',
           fontFamily: 'JetBrains Mono, monospace',
           fontSize: 10.5, letterSpacing: '0.13em', color: 'var(--blue)',
           textTransform: 'uppercase', marginBottom: '1rem',
@@ -97,13 +74,48 @@ export default function Vet() {
           AI Vet & Consultation
         </h1>
         <p style={{ fontSize: 14, color: 'var(--text2)' }}>
-          AI first aid → vet locator → live video consultation
+          AI first aid, then real veterinary clinics near your farm
         </p>
+      </div>
+
+      {/* ── Emergency Call Strip — always visible, always dial-able ── */}
+      <div className="animate-fade-up" style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        flexWrap: 'wrap', gap: 12,
+        padding: '14px 18px', borderRadius: 14, marginBottom: '1.75rem',
+        background: 'var(--red-dim)', border: '1px solid rgba(193,68,58,0.28)',
+      }}>
+        <div style={{ display:'flex', alignItems:'center', gap:12, minWidth: 0 }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
+            background: 'rgba(193,68,58,0.16)', border: '1px solid rgba(193,68,58,0.32)',
+            display:'flex', alignItems:'center', justifyContent:'center', fontSize: 18,
+          }}>🚨</div>
+          <div style={{ minWidth: 0 }}>
+            <p style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)' }}>
+              {vetsLoading ? 'Finding nearest vet…' : nearestVet ? `Nearest vet: ${nearestVet.name}` : 'No vet found nearby'}
+            </p>
+            <p style={{ fontSize: 11.5, color: 'var(--text3)' }}>
+              {nearestVet ? `${nearestVet.distance_km} km away · ${nearestVet.available ? 'Available now' : 'May be unavailable'}` : 'Call any time for urgent cattle issues'}
+            </p>
+          </div>
+        </div>
+        <a
+          href={nearestVet ? telHref(nearestVet.phone) : undefined}
+          className="btn-primary"
+          style={{
+            textDecoration: 'none', flexShrink: 0, fontSize: 13, padding: '10px 18px',
+            background: 'var(--red)', borderColor: 'var(--red)',
+            opacity: nearestVet ? 1 : 0.5, pointerEvents: nearestVet ? 'auto' : 'none',
+          }}
+        >
+          📞 Call Vet Now
+        </a>
       </div>
 
       {/* ── Level Selector Cards (LP grid style) ── */}
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(3,1fr)',
+        display: 'grid', gridTemplateColumns: 'repeat(2,1fr)',
         gap: 1,
         background: 'rgba(255,255,255,0.04)',
         borderRadius: 16, overflow: 'hidden',
@@ -113,12 +125,12 @@ export default function Vet() {
         {LEVEL_CARDS.map(({ id, emoji, tag, label, desc, color }, i) => (
           <button
             key={id}
-            onClick={() => id === 'map' ? loadVets() : setTab(id)}
+            onClick={() => setTab(id)}
             style={{
               padding: '1.5rem 1.25rem', textAlign: 'left', cursor: 'pointer',
               background: tab === id ? `color-mix(in srgb, ${color} 8%, var(--card))` : 'var(--card)',
               border: 'none',
-              borderRight: i < 2 ? '1px solid var(--border)' : 'none',
+              borderRight: i < LEVEL_CARDS.length - 1 ? '1px solid var(--border)' : 'none',
               outline: tab === id ? `1px solid color-mix(in srgb, ${color} 30%, transparent)` : 'none',
               outlineOffset: -1,
               transition: 'background 0.2s',
@@ -183,26 +195,36 @@ export default function Vet() {
                 </div>
                 <div style={{
                   padding:'1rem 1.1rem', borderRadius:10,
-                  background:'var(--green-dim)', border:'1px solid rgba(34,201,122,0.18)',
+                  background:'var(--green-dim)', border:'1px solid rgba(47,143,124,0.18)',
                   color:'var(--text)', fontSize:13, lineHeight:1.8,
                   whiteSpace:'pre-wrap', maxHeight:260, overflowY:'auto', marginBottom:16,
                 }}>
                   {result.ai_response}
                 </div>
-                <div style={{ display:'flex', gap:10 }}>
-                  <button className="btn-ghost" style={{ flex:1, justifyContent:'center' }} onClick={() => setTab('map')}>
-                    📍 Find Vet Nearby
-                  </button>
-                  <button className="btn-primary" style={{ flex:1, justifyContent:'center' }} onClick={() => setTab('video')}>
-                    📹 Video Call
-                  </button>
-                </div>
+
+                {/* Direct call-through to a real vet for treatment advice */}
+                {nearestVet && (
+                  <a href={telHref(nearestVet.phone)} style={{
+                    display:'flex', alignItems:'center', justifyContent:'space-between', gap:10,
+                    padding:'12px 14px', borderRadius:10, marginBottom:12, textDecoration:'none',
+                    background:'var(--red-dim)', border:'1px solid rgba(193,68,58,0.28)',
+                  }}>
+                    <span style={{ fontSize:12.5, color:'var(--text)' }}>
+                      Confirm treatment with <strong>{nearestVet.name}</strong> ({nearestVet.distance_km} km)
+                    </span>
+                    <span style={{ fontSize:12.5, fontWeight:700, color:'var(--red)', whiteSpace:'nowrap' }}>📞 Call</span>
+                  </a>
+                )}
+
+                <button className="btn-primary" style={{ width:'100%', justifyContent:'center' }} onClick={() => setTab('map')}>
+                  📍 View Vet Locations Near Me
+                </button>
               </div>
             ) : (
               <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:320 }}>
                 <div style={{
                   width:80, height:80, borderRadius:'50%',
-                  background:'rgba(96,168,240,0.1)', border:'1px solid rgba(96,168,240,0.2)',
+                  background:'rgba(90,111,165,0.1)', border:'1px solid rgba(90,111,165,0.2)',
                   display:'flex', alignItems:'center', justifyContent:'center',
                   fontSize:38, marginBottom:18,
                 }}>🤖</div>
@@ -216,154 +238,82 @@ export default function Vet() {
         </div>
       )}
 
-      {/* ══ VET MAP ══ */}
+      {/* ══ VET LOCATIONS — doctor contact cards + real Google Map ══ */}
       {tab === 'map' && (
         <div className="animate-fade-up">
-          <p style={{ fontSize:13, color:'var(--text2)', marginBottom:'1.25rem' }}>
-            Nearest veterinarians to your farm location
-          </p>
-          {vets.length === 0 ? (
-            <div className="card">
-              <div className="empty-state">
-                <div className="empty-icon">📍</div>
-                <p>Loading nearby vets…</p>
-                <small>Searching within 50 km radius</small>
-              </div>
-            </div>
+
+          {/* Doctor contact cards — direct call, anytime */}
+          <p className="section-tag" style={{ marginBottom: 10 }}>Nearby Vet Doctors</p>
+          {vetsLoading ? (
+            <p style={{ fontSize:12.5, color:'var(--text3)', marginBottom:'1.25rem' }}>Loading nearby vets…</p>
+          ) : vets.length === 0 ? (
+            <p style={{ fontSize:12.5, color:'var(--text3)', marginBottom:'1.25rem' }}>No vets found nearby right now.</p>
           ) : (
-            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            <div style={{
+              display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))',
+              gap:'1rem', marginBottom:'1.5rem',
+            }}>
               {vets.map((v, i) => (
-                <div key={i} className="card card-hover" style={{ padding:'1rem 1.5rem', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:12 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:16 }}>
-                    <div style={{
-                      width:48, height:48, borderRadius:'50%',
-                      background:'var(--blue-dim)', border:'1px solid rgba(96,168,240,0.22)',
-                      display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, flexShrink:0,
-                    }}>🩺</div>
+                <div key={i} className="card" style={{ padding:'1.1rem 1.2rem' }}>
+                  <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:8, marginBottom:10 }}>
                     <div>
-                      <p style={{ fontWeight:600, fontSize:14.5, color:'var(--text)', marginBottom:3 }}>{v.name}</p>
-                      <p style={{ fontSize:12, color:'var(--text3)' }}>
-                        <span style={{ fontFamily:'JetBrains Mono,monospace' }}>{v.distance_km} km</span> away · {v.phone}
-                      </p>
+                      <p className="font-display" style={{ fontSize:14.5, fontWeight:700, color:'var(--text)' }}>{v.name}</p>
+                      <p style={{ fontSize:11.5, color:'var(--text3)', marginTop:2 }}>{v.distance_km} km away</p>
                     </div>
-                  </div>
-                  <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                    <span className={`badge ${v.available ? 'badge-green' : 'badge-amber'}`}>
-                      {v.available ? '● Available' : '○ Busy'}
+                    <span style={{
+                      fontSize:10, fontWeight:700, padding:'3px 9px', borderRadius:20,
+                      textTransform:'uppercase', letterSpacing:'0.05em', whiteSpace:'nowrap',
+                      background: v.available ? 'var(--green-dim)' : 'var(--amber-dim)',
+                      color: v.available ? 'var(--green)' : 'var(--amber)',
+                      border: `1px solid ${v.available ? 'rgba(47,143,124,0.3)' : 'rgba(193,117,46,0.3)'}`,
+                    }}>
+                      {v.available ? 'Available' : 'Busy'}
                     </span>
-                    <button className="btn-primary" style={{ fontSize:12.5, padding:'7px 16px' }} onClick={() => setTab('video')}>
-                      📹 Call
-                    </button>
                   </div>
+                  <a href={telHref(v.phone)} className="btn-primary" style={{
+                    width:'100%', justifyContent:'center', textDecoration:'none',
+                    fontSize:12.5, padding:'9px 14px',
+                  }}>
+                    📞 Call {v.phone}
+                  </a>
                 </div>
               ))}
             </div>
           )}
-        </div>
-      )}
 
-      {/* ══ LIVE CHAT + VIDEO ══ */}
-      {tab === 'video' && (
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(320px,1fr))', gap:'1.5rem' }}
-             className="animate-fade-up">
-
-          {/* Chat panel */}
-          <div className="card" style={{ padding:'1.5rem', display:'flex', flexDirection:'column', height:520 }}>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 }}>
-              <div>
-                <p className="section-tag">Live Chat</p>
-                <h3 className="font-display" style={{ fontSize:15, fontWeight:700, color:'var(--text)' }}>Chat Room</h3>
-              </div>
-              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                <div style={{
-                  display:'flex', alignItems:'center', gap:6,
-                  padding:'4px 11px', borderRadius:20,
-                  background: ss.bg, border:`1px solid ${ss.border}`,
-                }}>
-                  <div style={{ width:6, height:6, borderRadius:'50%', background:ss.color }} />
-                  <span style={{ fontSize:11, color:ss.color, fontFamily:'JetBrains Mono,monospace' }}>{ss.label}</span>
-                </div>
-                {socketStatus !== 'connected' && (
-                  <button className="btn-primary" style={{ fontSize:11, padding:'5px 12px' }} onClick={joinChat}>Connect</button>
-                )}
-              </div>
-            </div>
-
-            <p style={{ fontSize:10.5, fontFamily:'JetBrains Mono,monospace', color:'var(--text3)', marginBottom:12, letterSpacing:'0.05em' }}>
-              ROOM · {room.slice(-12)}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            flexWrap: 'wrap', gap: 10, marginBottom: '1.1rem',
+          }}>
+            <p style={{ fontSize:13, color:'var(--text2)' }}>
+              Veterinary clinics near your farm — pan and zoom to explore, or open directly in Google Maps.
             </p>
-
-            <div ref={chatRef} style={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column', gap:8, marginBottom:12, paddingRight:4 }}>
-              {messages.length === 0 && (
-                <div style={{ textAlign:'center', marginTop:60 }}>
-                  <div style={{ fontSize:36, marginBottom:12 }}>💬</div>
-                  <p style={{ color:'var(--text3)', fontSize:13 }}>Click Connect to join the room</p>
-                </div>
-              )}
-              {messages.map((m, i) => {
-                const isMe = m.sender === (form.farmer_name || 'Farmer')
-                return (
-                  <div key={i} style={{ display:'flex', justifyContent: isMe ? 'flex-end' : 'flex-start' }}>
-                    <div style={{
-                      maxWidth:'78%', padding:'9px 13px', borderRadius:12,
-                      fontSize:13, lineHeight:1.55,
-                      background: m.system ? 'var(--bg2)' : isMe ? 'var(--green-dim)' : 'var(--card2)',
-                      color: m.system ? 'var(--text3)' : 'var(--text)',
-                      border: `1px solid ${m.system ? 'var(--border)' : isMe ? 'rgba(34,201,122,0.2)' : 'var(--border)'}`,
-                    }}>
-                      {!m.system && <p style={{ fontSize:10, color:'var(--text3)', marginBottom:3, fontFamily:'JetBrains Mono,monospace' }}>{m.sender} · {m.ts}</p>}
-                      {m.text}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-
-            <div style={{ display:'flex', gap:8 }}>
-              <input
-                placeholder={socketStatus==='connected' ? 'Type a message…' : 'Connect first…'}
-                value={msgInput}
-                disabled={socketStatus !== 'connected'}
-                onChange={e => setMsgInput(e.target.value)}
-                onKeyDown={e => e.key==='Enter' && sendMsg()}
-              />
-              <button className="btn-primary" style={{ padding:'0 18px', flexShrink:0 }}
-                onClick={sendMsg} disabled={socketStatus !== 'connected'}>
-                →
-              </button>
-            </div>
+            <a
+              href={MAP_LINK}
+              target="_blank"
+              rel="noreferrer"
+              className="btn-primary"
+              style={{ textDecoration: 'none', fontSize: 12.5, padding: '9px 16px', flexShrink: 0 }}
+            >
+              🧭 Open in Google Maps
+            </a>
           </div>
 
-          {/* Video panel */}
-          <div className="card" style={{ padding:'2.5rem', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', textAlign:'center', gap:20, height:520 }}>
-            <div style={{
-              width:84, height:84, borderRadius:'50%',
-              background:'var(--blue-dim)', border:'1px solid rgba(96,168,240,0.28)',
-              display:'flex', alignItems:'center', justifyContent:'center', fontSize:38,
-            }}>
-              📹
-            </div>
-
-            <div>
-              <h3 className="font-display" style={{ fontSize:18, fontWeight:700, color:'var(--text)', marginBottom:6 }}>
-                Jitsi Video Consultation
-              </h3>
-              <p style={{ fontSize:13.5, color:'var(--text2)', lineHeight:1.65 }}>
-                Free · No account needed · HD quality
-              </p>
-            </div>
-
-            <button className="btn-primary" style={{ width:'100%', justifyContent:'center', padding:'13px 20px', fontSize:14.5 }} onClick={openVideo}>
-              🚀 Launch Video Call
-            </button>
-
-            <div style={{ background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:10, padding:'10px 18px', width:'100%' }}>
-              <p style={{ fontSize:10, color:'var(--text3)', fontFamily:'JetBrains Mono,monospace', marginBottom:5, letterSpacing:'0.08em' }}>ROOM ID</p>
-              <p style={{ fontSize:12.5, color:'var(--text2)', fontFamily:'JetBrains Mono,monospace' }}>{room.slice(-16)}</p>
-            </div>
-
-            <p style={{ fontSize:12, color:'var(--text3)' }}>Share Room ID with your vet to join the same call</p>
+          <div className="card" style={{ padding: 8, overflow: 'hidden' }}>
+            <iframe
+              title="Nearby veterinary clinics"
+              src={MAP_EMBED_SRC}
+              width="100%"
+              height="480"
+              style={{ border: 0, borderRadius: 12, display: 'block' }}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
           </div>
+
+          <p style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 10 }}>
+            Map centered on your farm location. Tap any pin on Google Maps for phone numbers, hours and directions.
+          </p>
         </div>
       )}
     </div>

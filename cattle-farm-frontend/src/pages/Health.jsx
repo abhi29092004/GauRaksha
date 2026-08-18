@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react'
 import { healthAPI } from '../services/api'
 
 const STATUS_META = {
-  low:    { badge: 'badge-green', label: 'Healthy',   color: 'var(--green)', bg: 'var(--green-dim)', border: 'rgba(34,201,122,0.2)'  },
-  medium: { badge: 'badge-amber', label: 'Monitor',   color: 'var(--amber)', bg: 'var(--amber-dim)', border: 'rgba(240,160,48,0.2)'  },
-  high:   { badge: 'badge-red',   label: 'Critical',  color: 'var(--red)',   bg: 'var(--red-dim)',   border: 'rgba(240,96,96,0.2)'   },
+  low:    { badge: 'badge-green', label: 'Healthy',   color: 'var(--green)', bg: 'var(--green-dim)', border: 'rgba(47,143,124,0.2)'  },
+  medium: { badge: 'badge-amber', label: 'Monitor',   color: 'var(--amber)', bg: 'var(--amber-dim)', border: 'rgba(193,117,46,0.2)'  },
+  high:   { badge: 'badge-red',   label: 'Critical',  color: 'var(--red)',   bg: 'var(--red-dim)',   border: 'rgba(193,68,58,0.2)'   },
 }
 
 const VITAL_FIELDS = [
@@ -73,13 +73,13 @@ export default function Health() {
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
           padding: '5px 16px', borderRadius: 24,
-          background: 'rgba(34,201,122,0.10)',
-          border: '1px solid rgba(34,201,122,0.26)',
+          background: 'rgba(47,143,124,0.10)',
+          border: '1px solid rgba(47,143,124,0.26)',
           fontFamily: 'JetBrains Mono, monospace',
           fontSize: 10.5, letterSpacing: '0.13em', color: 'var(--green)',
           textTransform: 'uppercase', marginBottom: '1rem',
         }}>
-          Module 01
+          
         </div>
         <h1 className="font-display" style={{
           fontSize: 'clamp(26px,4.5vw,36px)',
@@ -196,7 +196,7 @@ export default function Health() {
             <button className="btn-primary" style={{ width:'100%', justifyContent:'center', padding:'11px 20px' }}
               onClick={predict} disabled={loading}>
               {loading
-                ? <><span className="animate-spin" style={{ display:'inline-block', width:14, height:14, border:'2px solid rgba(4,18,9,0.3)', borderTop:'2px solid #041209', borderRadius:'50%' }} /> Analysing…</>
+                ? <><span className="animate-spin" style={{ display:'inline-block', width:14, height:14, border:'2px solid rgba(4,18,9,0.3)', borderTop:'2px solid #17140a', borderRadius:'50%' }} /> Analysing…</>
                 : '🧠 Run Health Prediction'}
             </button>
           </div>
@@ -279,7 +279,7 @@ export default function Health() {
               <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:340 }}>
                 <div style={{
                   width:80, height:80, borderRadius:'50%',
-                  background:'var(--green-dim)', border:'1px solid rgba(34,201,122,0.2)',
+                  background:'var(--green-dim)', border:'1px solid rgba(47,143,124,0.2)',
                   display:'flex', alignItems:'center', justifyContent:'center',
                   fontSize:38, marginBottom:18,
                 }}>🐄</div>

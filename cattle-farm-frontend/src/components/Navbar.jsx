@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-
+import cattleLogo from "../assets/cattle.png"
 const NAV_ITEMS = [
-  { path: '/',        label: 'Dashboard', icon: '⬡', emoji: '📊' },
-  { path: '/health',  label: 'Health',    icon: '⬡', emoji: '🩺' },
-  { path: '/vet',     label: 'Vet & AI',  icon: '⬡', emoji: '🤖' },
-  { path: '/milk',    label: 'Milk',      icon: '⬡', emoji: '🥛' },
-  { path: '/finance', label: 'Finance',   icon: '⬡', emoji: '₹'  },
+  { path: '/',        label: 'Dashboard' },
+  { path: '/health',  label: 'Health' },
+  { path: '/vet',     label: 'Vet & AI'},
+  { path: '/milk',    label: 'Milk' },
+  { path: '/finance', label: 'Finance'},
 ]
 
 export default function Navbar() {
@@ -29,9 +29,14 @@ export default function Navbar() {
       {/* ── TOP NAV ── */}
       <nav className="topnav">
         {/* Brand */}
-        <NavLink to="/" className="topnav-brand" onClick={() => setMenuOpen(false)}>
-          <div className="topnav-brand-icon">🐄</div>
-          <span>GauRaksha</span>
+        <NavLink to="/" className="topnav-brand">
+          <div className="floating-logo">
+            <img
+              src={cattleLogo}
+              alt="GauRaksha Logo"
+              className="logo-image"
+            />
+          </div>
         </NavLink>
 
         {/* Desktop links */}
@@ -91,47 +96,6 @@ export default function Navbar() {
           <button className="btn-theme" onClick={toggleTheme}>{isLight ? '🌙' : '☀️'}</button>
         </div>
       </div>
-
-      {/* ── SIDEBAR (desktop) ── */}
-      <aside className="sidebar">
-        <p className="sidebar-section-title">Navigation</p>
-        {NAV_ITEMS.map(({ path, label, emoji }) => (
-          <NavLink
-            key={path}
-            to={path}
-            end={path === '/'}
-            className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
-          >
-            <span className="sidebar-link-icon">{emoji}</span>
-            {label}
-          </NavLink>
-        ))}
-
-        <p className="sidebar-section-title" style={{ marginTop: '1.5rem' }}>System</p>
-        <div style={{ padding: '9px 12px', borderRadius: 'var(--radius-sm)', marginBottom: 2 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-            <span className="live-dot" />
-            <span style={{ fontSize: 11.5, color: 'var(--green)', fontFamily: 'JetBrains Mono,monospace' }}>CONNECTED</span>
-          </div>
-          <p style={{ fontSize: 11, color: 'var(--text3)' }}>2 farm nodes online</p>
-        </div>
-
-        {/* Sidebar footer — theme toggle */}
-        <div className="sidebar-footer">
-          <div className="sidebar-theme-toggle" onClick={toggleTheme}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 14 }}>{isLight ? '☀️' : '🌙'}</span>
-              <span className="sidebar-theme-label">{isLight ? 'Light mode' : 'Dark mode'}</span>
-            </div>
-            <div className={`theme-toggle-pill${isLight ? ' light' : ''}`} />
-          </div>
-          <div style={{ marginTop: '0.75rem', padding: '0 12px' }}>
-            <p style={{ fontSize: 10.5, color: 'var(--text3)', fontFamily: 'JetBrains Mono,monospace', letterSpacing: '0.04em' }}>
-              GauRaksha v2.0 · 2026
-            </p>
-          </div>
-        </div>
-      </aside>
     </>
   )
 }
